@@ -15,10 +15,12 @@ pipeline {
     stage('Build & Push Docker image') {
       steps {
         script {
-          env.IMAGE_TAG = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+          // BRANCH_NAME peut être null selon le type de job => fallback simple
+          def branch = env.BRANCH_NAME ?: 'master'
+          env.IMAGE_TAG = "${branch}-${env.BUILD_NUMBER}"
         }
 
-        // DOCKER_HUB_PASS est un "Secret text" => on utilise string()
+        // DOCKER_HUB_PASS = Secret text (token)
         withCredentials([string(credentialsId: 'DOCKER_HUB_PASS', variable: 'DH_TOKEN')]) {
           sh """
             echo "\$DH_TOKEN" | docker login -u "${DOCKERHUB_USER}" --password-stdin
