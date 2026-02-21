@@ -18,9 +18,10 @@ pipeline {
           env.IMAGE_TAG = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
         }
 
-        withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_PASS', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+        // DOCKER_HUB_PASS est un "Secret text" => on utilise string()
+        withCredentials([string(credentialsId: 'DOCKER_HUB_PASS', variable: 'DH_TOKEN')]) {
           sh """
-            echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+            echo "\$DH_TOKEN" | docker login -u "${DOCKERHUB_USER}" --password-stdin
             docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} cast-service
             docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
           """
