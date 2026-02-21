@@ -3,7 +3,7 @@ pipeline {
 
   environment {
     DOCKERHUB_USER = "nicolaswibart"
-    IMAGE_NAME     = "cast-service"   // l'image déployée par le chart
+    IMAGE_NAME     = "cast-service"
     CHART_DIR      = "./charts"
   }
 
@@ -12,18 +12,18 @@ pipeline {
       steps { checkout scm }
     }
 
-    stage('Build & Push Image') {
+    stage('Build & Push Docker image') {
       steps {
         script {
-          def tag = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+          env.IMAGE_TAG = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+        }
 
-          docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
-            // build depuis le dossier cast-service
-            def img = docker.build("${DOCKERHUB_USER}/${IMAGE_NAME}:${tag}", "cast-service")
-            img.push()
-          }
-
-          env.IMAGE_TAG = tag
+        withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_PASS', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+          sh """
+            echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+            docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} cast-service
+            docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+          """
         }
       }
     }
