@@ -18,7 +18,7 @@ pipeline {
     stage('Build & Push Docker image') {
       steps {
         script {
-          def branch = env.BRANCH_NAME ?: 'master'
+          def branch = env.BRANCH_NAME ?: (env.GIT_BRANCH ? env.GIT_BRANCH.tokenize('/').last() : 'master')
           env.IMAGE_TAG = "${branch}-${env.BUILD_NUMBER}"
         }
 
@@ -64,7 +64,14 @@ pipeline {
     }
 
     stage('Deploy PROD (manual, master only)') {
-      when { branch 'master' }
+      when {
+        expression {
+          // marche si Jenkins expose "master", "origin/master", "refs/remotes/origin/master", etc.
+          def b1 = env.BRANCH_NAME ?: ''
+          def b2 = env.GIT_BRANCH ?: ''
+          return (b1 == 'master') || b2.endsWith('/master') || b2.contains('master')
+        }
+      }
       steps {
         input message: "Déployer en PROD ?", ok: "Déployer PROD"
         sh """
